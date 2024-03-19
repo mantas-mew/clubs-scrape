@@ -1,0 +1,46 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import time
+import re
+
+# Initialize the Firefox WebDriver
+driver = webdriver.Firefox()
+
+try:
+    # Navigate to the clubs page
+    driver.get("https://www.monaghangaa.ie/clubs/")
+    time.sleep(2)  # Wait for the page to load
+
+    # Find all club URLs
+    club_elements = driver.find_elements(By.XPATH, "//div[contains(@class, 'column club')]/p/a")
+    club_urls = [elem.get_attribute('href') for elem in club_elements]
+
+    # Prepare to collect email addresses
+    all_email_addresses = []
+
+    for url in club_urls:
+        # Visit each club's page
+        driver.get(url)
+        time.sleep(2)  # Wait for the page to load
+
+        # Get the page source
+        page_source = driver.page_source
+
+        # Regex pattern for matching email addresses
+        email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}'
+
+        # Find all instances of the pattern in the page source
+        email_addresses = re.findall(email_pattern, page_source)
+        all_email_addresses.extend(email_addresses)
+
+finally:
+    # Close the browser
+    driver.quit()
+
+# Save the email addresses to a text file
+file_path = r'C:\email_addresses.txt'
+with open(file_path, "w") as file:
+    for email in set(all_email_addresses):  # Use set to remove duplicates
+        file.write(email + '\n')
+
+print(f"Email addresses saved to {file_path}")
