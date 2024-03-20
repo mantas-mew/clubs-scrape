@@ -1,0 +1,65 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import time
+import re
+from bs4 import BeautifulSoup
+
+# Initialize the Firefox WebDriver
+driver = webdriver.Firefox()
+
+# Function to find email addresses using BeautifulSoup
+def find_emails(page_source):
+    soup = BeautifulSoup(page_source, 'html.parser')
+    email_addresses = []
+    # Find all <a> tags with href attributes containing mailto:
+    for a in soup.find_all('a', href=True):
+        href = a['href']
+        if href.startswith('mailto:'):
+            email_address = href.replace('mailto:', '')
+            email_addresses.append(email_address)
+    return email_addresses
+
+try:
+    # Navigate to the main clubs page
+    driver.get("https://gaelicgameseurope.com/clubs/")
+    time.sleep(2)  # Wait for the page to load
+    
+    # Prepare to collect email addresses
+    all_email_addresses = []
+    
+    # Assuming there might be multiple pages of clubs, iterate through all pages
+    while True:
+        # Find all club URLs on the current page
+        club_elements = driver.find_elements(By.CSS_SELECTOR, "article > div > a")
+        club_urls = [elem.get_attribute('href') for elem in club_elements]
+        
+        for url in club_urls:
+            # Visit each club's page
+            driver.get(url)
+            time.sleep(2)  # Wait for the page to load
+            
+            # Get the page source and find emails
+            page_source = driver.page_source
+            email_addresses = find_emails(page_source)
+            all_email_addresses.extend(email_addresses)
+        
+        # Try to navigate to the next page, break the loop if it's not possible
+        next_page_elements = driver.find_elements(By.CSS_SELECTOR, "a[aria-label='Next Page']")
+        if next_page_elements:
+            next_page_url = next_page_elements[0].get_attribute('href')
+            driver.get(next_page_url)
+            time.sleep(2)  # Wait for the page to load
+        else:
+            break
+
+finally:
+    # Close the browser
+    driver.quit()
+
+# Save the email addresses to a text file
+file_path = 'C:\\Users\\user.MEW\\Desktop\\16DEGREES EXAMPLES\\email.txt'
+with open(file_path, "w") as file:
+    for email in set(all_email_addresses):  # Use set to remove duplicates
+        file.write(email + '\n')
+
+print(f"Email addresses saved to {file_path}")
